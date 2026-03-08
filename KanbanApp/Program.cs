@@ -4,6 +4,8 @@ using KanbanApp.Models;
 using KanbanApp.Services;
 using System.Security.Claims;
 using KanbanApp.DTOs;
+using KanbanApp.Authorization;
+using Microsoft.AspNetCore.Authorization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,7 +19,15 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<IBoardService, BoardService>();
 builder.Services.AddScoped<IUserService, UserService>();
-builder.Services.AddAuthorization();
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("IsBoardOwner", policy =>
+        policy.Requirements.Add(new IsBoardOwnerRequirement()));
+});
+
+builder.Services.AddScoped<IAuthorizationHandler, IsBoardOwnerHandler>();
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -50,6 +60,24 @@ app.MapPost("/api/boards", async (CreateBoardDto dto, IBoardService boardService
     var board = await boardService.CreateAsync(dto.BoardName, null, userId!);
     return TypedResults.Created($"/api/boards/{board.Id}", new { board.Id, board.Name, board.Description });
     
+}).RequireAuthorization();
+
+app.MapPost("/api/boards/{boardId}/members", async (
+    int boardId,
+    string userId,
+    IBoardService boardService,
+    IAuthorizationService authorizationService,
+    ClaimsPrincipal user,
+    ApplicationDbContext db) =>
+{
+    var authResult = await authorizationService.AuthorizeAsync(user, boardId, "IsBoardOwner");
+    if (!authResult.Succeeded) return Results.Forbid();
+
+    var member = new BoardMember { BoardId = boardId, UserId = userId, Role = BoardRole.Member };
+    db.BoardMembers.Add(member);
+    await db.SaveChangesAsync();
+
+    return Results.Ok(member);
 }).RequireAuthorization();
 
 app.Run();
