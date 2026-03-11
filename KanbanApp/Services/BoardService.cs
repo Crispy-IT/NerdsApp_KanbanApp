@@ -26,7 +26,8 @@ public class BoardService : IBoardService
     {
         return await _context.Boards
             .Include(b => b.Columns)
-            .FirstOrDefaultAsync(b => b.Id == boardId 
+            .ThenInclude(c => c.Cards)
+            .FirstOrDefaultAsync(b => b.Id == boardId
                                       && b.BoardMembers.Any(bm => bm.UserId == userId));
     }
 

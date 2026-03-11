@@ -24,7 +24,11 @@ builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("IsBoardOwner", policy =>
         policy.Requirements.Add(new IsBoardOwnerRequirement()));
+    options.AddPolicy("IsBoardMember", policy =>
+        policy.Requirements.Add(new IsBoardMemberRequirement()));
 });
+builder.Services.AddScoped<IAuthorizationHandler, IsBoardOwnerHandler>();
+builder.Services.AddScoped<IAuthorizationHandler, IsBoardMemberHandler>();
 
 builder.Services.AddScoped<IAuthorizationHandler, IsBoardOwnerHandler>();
 
@@ -65,13 +69,16 @@ app.MapPost("/api/boards", async (CreateBoardDto dto, IBoardService boardService
 app.MapPost("/api/boards/{boardId}/members", async (
     int boardId,
     string userId,
-    IBoardService boardService,
     IAuthorizationService authorizationService,
     ClaimsPrincipal user,
     ApplicationDbContext db) =>
 {
     var authResult = await authorizationService.AuthorizeAsync(user, boardId, "IsBoardOwner");
     if (!authResult.Succeeded) return Results.Forbid();
+    
+    var alreadyMember = await db.BoardMembers
+        .AnyAsync(m => m.BoardId == boardId && m.UserId == userId);
+    if (alreadyMember) return Results.Conflict("User is already a member of this board.");
 
     var member = new BoardMember { BoardId = boardId, UserId = userId, Role = BoardRole.Member };
     db.BoardMembers.Add(member);
@@ -79,6 +86,42 @@ app.MapPost("/api/boards/{boardId}/members", async (
 
     return Results.Ok(member);
 }).RequireAuthorization();
+
+app.MapGet("/api/boards/{boardId}", async (
+    int boardId,
+    IBoardService boardService,
+    IAuthorizationService authorizationService,
+    ClaimsPrincipal user) =>
+{
+    var authResult = await authorizationService.AuthorizeAsync(user, boardId, "IsBoardMember");
+    if (!authResult.Succeeded) return Results.Forbid();
+
+    var userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
+    var board = await boardService.GetByIdAsync(boardId, userId!);
+    if (board == null) return Results.NotFound();
+
+    var dto = new BoardDetailDto(
+        board.Id,
+        board.Name,
+        board.Description,
+        board.CreatedAt,
+        board.Columns.Select(c => new ColumnDto(
+            c.Id,
+            c.Name,
+            c.Position,
+            c.Cards.Select(card => new CardDto(
+                card.Id,
+                card.Title,
+                card.Description,
+                card.Position,
+                card.CreatedAt
+            )).ToList()
+        )).ToList()
+    );
+
+    return Results.Ok(dto);
+}).RequireAuthorization();
+
 
 app.Run();
 
