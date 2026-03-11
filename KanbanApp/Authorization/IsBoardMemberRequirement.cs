@@ -1,6 +1,5 @@
-﻿namespace KanbanApp.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 
-public class IsBoardMemberRequirement
-{
-    
-}
+namespace KanbanApp.Authorization;
+
+public class IsBoardMemberRequirement : IAuthorizationRequirement { }
