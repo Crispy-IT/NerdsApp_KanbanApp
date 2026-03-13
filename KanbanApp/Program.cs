@@ -27,10 +27,9 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("IsBoardMember", policy =>
         policy.Requirements.Add(new IsBoardMemberRequirement()));
 });
-builder.Services.AddScoped<IAuthorizationHandler, IsBoardOwnerHandler>();
-builder.Services.AddScoped<IAuthorizationHandler, IsBoardMemberHandler>();
 
 builder.Services.AddScoped<IAuthorizationHandler, IsBoardOwnerHandler>();
+builder.Services.AddScoped<IAuthorizationHandler, IsBoardMemberHandler>();
 
 var app = builder.Build();
 
