@@ -29,6 +29,21 @@ public class UserProfileTests : IClassFixture<WebApplicationFactory<Program>>
         }).CreateClient();
     }
 
+    private async Task RegisterAndLogin(string email)
+    {
+        var reg = await _client.PostAsJsonAsync("/register", new { email, password = "Test123!" });
+        reg.EnsureSuccessStatusCode();
+
+        var login = await _client.PostAsJsonAsync("/login?useCookies=false&useSessionCookies=false",
+            new { email, password = "Test123!" });
+        login.EnsureSuccessStatusCode();
+
+        var tokenData = await login.Content.ReadFromJsonAsync<JsonElement>();
+        var token = tokenData.GetProperty("accessToken").GetString();
+        _client.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+    }
+
     [Fact]
     public async Task GetMe_WithoutToken_Returns401()
     {
@@ -39,25 +54,14 @@ public class UserProfileTests : IClassFixture<WebApplicationFactory<Program>>
     [Fact]
     public async Task GetMe_WithValidToken_ReturnsUserData()
     {
-        await _client.PostAsJsonAsync("/register", new
-        {
-            email = "me@test.com",
-            password = "Test123!"
-        });
-
-        var loginResponse = await _client.PostAsJsonAsync("/login?useCookies=false&useSessionCookies=false", new
-        {
-            email = "me@test.com",
-            password = "Test123!"
-        });
-
-        var tokenData = await loginResponse.Content.ReadFromJsonAsync<JsonElement>();
-        var token = tokenData.GetProperty("accessToken").GetString();
-
-        _client.DefaultRequestHeaders.Authorization =
-            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        await RegisterAndLogin("me@test.com");
 
         var response = await _client.GetAsync("/api/users/me");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var data = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("me@test.com", data.GetProperty("email").GetString());
+        Assert.True(data.TryGetProperty("id", out _));
+        Assert.True(data.TryGetProperty("userName", out _));
     }
 }
