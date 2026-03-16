@@ -106,4 +106,49 @@ public class CardTests : IClassFixture<WebApplicationFactory<Program>>
         var delete = await outsider.DeleteAsync($"/api/boards/{boardId}/cards/1");
         Assert.Equal(HttpStatusCode.Forbidden, delete.StatusCode);
     }
+    
+    [Fact]
+    public async Task AssignCard_ToValidMember_ReturnsOk()
+{
+        var owner = await RegisterAndLogin("assignowner@test.com");
+        var board = await owner.PostAsJsonAsync("/api/boards", new { boardName = "Assign Board" });
+        var boardId = (await board.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
+
+        var col = await owner.PostAsJsonAsync($"/api/boards/{boardId}/columns", new { name = "Col" });
+        var colId = (await col.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
+
+        var card = await owner.PostAsJsonAsync($"/api/boards/{boardId}/cards",
+            new { title = "Task", description = "desc", columnId = colId });
+        var cardId = (await card.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
+
+        // get owner's userId
+        var me = await owner.GetAsync("/api/users/me");
+        var userId = (await me.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetString();
+
+        var response = await owner.PutAsJsonAsync($"/api/boards/{boardId}/cards/{cardId}/assign",
+            new { userId });
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var data = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(userId, data.GetProperty("assignedToUserId").GetString());
+    }
+
+    [Fact]
+    public async Task AssignCard_ToNonMember_ReturnsBadRequest()
+    {
+        var owner = await RegisterAndLogin("assignowner2@test.com");
+        var board = await owner.PostAsJsonAsync("/api/boards", new { boardName = "Assign Board 2" });
+        var boardId = (await board.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
+
+        var col = await owner.PostAsJsonAsync($"/api/boards/{boardId}/columns", new { name = "Col" });
+        var colId = (await col.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
+
+        var card = await owner.PostAsJsonAsync($"/api/boards/{boardId}/cards",
+            new { title = "Task", description = "desc", columnId = colId });
+        var cardId = (await card.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
+
+        var response = await owner.PutAsJsonAsync($"/api/boards/{boardId}/cards/{cardId}/assign",
+            new { userId = "nonexistent-user-id" });
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
 }
+

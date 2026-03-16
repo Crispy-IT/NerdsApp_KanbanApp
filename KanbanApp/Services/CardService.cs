@@ -49,4 +49,14 @@ public class CardService : ICardService
         await _context.SaveChangesAsync();
         return true;
     }
+    
+    public async Task<Card?> AssignCardAsync(int cardId, string userId)
+    {
+        var card = await _context.Cards.FindAsync(cardId);
+        if (card == null) return null;
+
+        card.AssignedToUserId = userId;
+        await _context.SaveChangesAsync();
+        return card;
+    }
 }
