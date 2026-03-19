@@ -1,7 +1,7 @@
 ﻿using System.Net;
 using System.Net.Http.Json;
-using KanbanApp.Data;
-using KanbanApp.Models;
+using KanbanApp.Backend.Data;
+using KanbanApp.Backend.Models;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
