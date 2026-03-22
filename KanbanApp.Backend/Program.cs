@@ -236,7 +236,7 @@ cards.MapPut("/{cardId}/assign", async (int boardId, int cardId, AssignCardDto d
     if (!authResult.Succeeded) return Results.Forbid();
 
     var isMember = await boardService.IsMemberAsync(boardId, dto.UserId);
-    if (!isMember) return Results.BadRequest("User is not a board member");
+    if (!isMember) return Results.Forbid();
 
     var card = await cardService.AssignCardAsync(cardId, dto.UserId);
     return card is null ? Results.NotFound() : Results.Ok(new { card.Id, card.Title, card.AssignedToUserId });
