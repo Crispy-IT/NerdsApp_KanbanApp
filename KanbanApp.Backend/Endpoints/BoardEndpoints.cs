@@ -12,11 +12,12 @@ public static class BoardEndpoints
 {
     public static void MapBoardEndpoints(this WebApplication app)
     {
-        app.MapGet("/api/boards", async (IBoardService service) =>
+        app.MapGet("/api/boards", async (IBoardService service, ClaimsPrincipal user) =>
         {
-            var boards = await service.GetAllByUserAsync("test-user-id");
+            var userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
+            var boards = await service.GetAllByUserAsync(userId!);
             return Results.Ok(boards);
-        });
+        }).RequireAuthorization();
 
         app.MapPost("/api/boards", async (CreateBoardDto dto, IBoardService boardService, ClaimsPrincipal user) =>
         {
