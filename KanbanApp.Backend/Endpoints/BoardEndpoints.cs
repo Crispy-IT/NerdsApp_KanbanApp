@@ -16,7 +16,8 @@ public static class BoardEndpoints
         {
             var userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
             var boards = await service.GetAllByUserAsync(userId!);
-            return Results.Ok(boards);
+            var result = boards.Select(b => new { b.Id, b.Name, b.Description, b.CreatedAt });
+            return Results.Ok(result);
         }).RequireAuthorization();
 
         app.MapPost("/api/boards", async (CreateBoardDto dto, IBoardService boardService, ClaimsPrincipal user) =>
@@ -42,7 +43,7 @@ public static class BoardEndpoints
                 board.Columns.Select(c => new ColumnDto(
                     c.Id, c.Name, c.Position,
                     c.Cards.Select(card => new CardDto(
-                        card.Id, card.Title, card.Description, card.Position, card.CreatedAt
+                        card.Id, card.Title, card.Description, card.Position, card.CreatedAt, card.AssignedToUserId
                     )).ToList()
                 )).ToList()
             );
