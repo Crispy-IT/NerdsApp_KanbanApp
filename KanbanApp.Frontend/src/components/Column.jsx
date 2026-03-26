@@ -1,7 +1,19 @@
+import { useState } from 'react';
 import { Droppable, Draggable } from '@hello-pangea/dnd';
 import Card from './Card';
 
-export default function Column({ column }) {
+export default function Column({ column, onCreateCard }) {
+    const [showForm, setShowForm] = useState(false);
+    const [title, setTitle] = useState('');
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (!title.trim()) return;
+        await onCreateCard(column.id, title.trim());
+        setTitle('');
+        setShowForm(false);
+    };
+
     return (
         <div style={{
             backgroundColor: '#f4f5f7',
@@ -44,6 +56,39 @@ export default function Column({ column }) {
                     </div>
                 )}
             </Droppable>
+
+            {showForm ? (
+                <form onSubmit={handleSubmit} style={{ marginTop: '8px' }}>
+                    <input
+                        type="text"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        placeholder="Card title..."
+                        autoFocus
+                        style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' }}
+                    />
+                    <div style={{ display: 'flex', gap: '5px', marginTop: '5px' }}>
+                        <button type="submit" style={{ padding: '5px 12px', cursor: 'pointer' }}>Add</button>
+                        <button type="button" onClick={() => { setShowForm(false); setTitle(''); }} style={{ padding: '5px 12px', cursor: 'pointer' }}>Cancel</button>
+                    </div>
+                </form>
+            ) : (
+                <button
+                    onClick={() => setShowForm(true)}
+                    style={{
+                        marginTop: '8px',
+                        width: '100%',
+                        padding: '6px',
+                        background: 'none',
+                        border: 'none',
+                        color: '#888',
+                        cursor: 'pointer',
+                        textAlign: 'left'
+                    }}
+                >
+                    + Create Card
+                </button>
+            )}
         </div>
     );
 }

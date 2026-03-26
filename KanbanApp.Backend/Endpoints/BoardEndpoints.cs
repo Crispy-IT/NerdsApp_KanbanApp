@@ -75,21 +75,24 @@ public static class BoardEndpoints
         }).RequireAuthorization();
 
         app.MapPost("/api/boards/{boardId}/members", async (
-            int boardId, string userId,
+            int boardId, InviteMemberDto dto,
             IAuthorizationService authorizationService,
             ClaimsPrincipal user, ApplicationDbContext db) =>
         {
             var authResult = await authorizationService.AuthorizeAsync(user, boardId, "IsBoardOwner");
             if (!authResult.Succeeded) return Results.Forbid();
 
+            var invitedUser = await db.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);
+            if (invitedUser == null) return Results.NotFound("User not found.");
+
             var alreadyMember = await db.BoardMembers
-                .AnyAsync(m => m.BoardId == boardId && m.UserId == userId);
+                .AnyAsync(m => m.BoardId == boardId && m.UserId == invitedUser.Id);
             if (alreadyMember) return Results.Conflict("User is already a member of this board.");
 
-            var member = new BoardMember { BoardId = boardId, UserId = userId, Role = BoardRole.Member };
+            var member = new BoardMember { BoardId = boardId, UserId = invitedUser.Id, Role = BoardRole.Member };
             db.BoardMembers.Add(member);
             await db.SaveChangesAsync();
-            return Results.Ok(member);
+            return Results.Ok(new { invitedUser.Email, boardId });
         }).RequireAuthorization();
     }
 }
