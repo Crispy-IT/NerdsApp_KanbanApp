@@ -54,9 +54,9 @@ public class BoardMemberTests : IClassFixture<WebApplicationFactory<Program>>
         var boardId = boardData.GetProperty("id").GetInt32();
 
         await _ownerClient.PostAsJsonAsync("/register", new { email = "newmember@test.com", password = "Test123!" });
-
-        var response =
-            await _ownerClient.PostAsJsonAsync($"/api/boards/{boardId}/members?userId=newmember@test.com", new { });
+        
+            var response =
+            await _ownerClient.PostAsJsonAsync($"/api/boards/{boardId}/members", new { email = "newmember@test.com" });
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
@@ -72,13 +72,13 @@ public class BoardMemberTests : IClassFixture<WebApplicationFactory<Program>>
         var boardId = boardData.GetProperty("id").GetInt32();
 
         var (nonOwnerToken, _) = await RegisterAndLogin("nonowner@test.com");
-        await _ownerClient.PostAsJsonAsync($"/api/boards/{boardId}/members?userId=nonowner@test.com", new { });
+        await _ownerClient.PostAsJsonAsync($"/api/boards/{boardId}/members", new { email = "nonowner@test.com" });
 
         _nonOwnerClient.DefaultRequestHeaders.Authorization =
             new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", nonOwnerToken);
 
         var response =
-            await _nonOwnerClient.PostAsJsonAsync($"/api/boards/{boardId}/members?userId=someone@test.com", new { });
+            await _nonOwnerClient.PostAsJsonAsync($"/api/boards/{boardId}/members", new { email = "someone@test.com" });
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 
