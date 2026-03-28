@@ -72,7 +72,7 @@ public class BoardOwnerTests : IClassFixture<WebApplicationFactory<Program>>
     }
 
     [Fact]
-    public async Task UpdateBoard_AsMember_ReturnsForbid()
+    public async Task UpdateBoard_AsNonMember_ReturnsForbid()
     {
         var ownerClient = await RegisterAndLogin("boardowner3@test.com");
         var create = await ownerClient.PostAsJsonAsync("/api/boards", new { boardName = "Owner Board" });
@@ -86,13 +86,45 @@ public class BoardOwnerTests : IClassFixture<WebApplicationFactory<Program>>
     }
 
     [Fact]
-    public async Task DeleteBoard_AsMember_ReturnsForbid()
+    public async Task DeleteBoard_AsNonMember_ReturnsForbid()
     {
         var ownerClient = await RegisterAndLogin("boardowner4@test.com");
         var create = await ownerClient.PostAsJsonAsync("/api/boards", new { boardName = "Owner Board 2" });
         var boardId = (await create.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
 
         var memberClient = await RegisterAndLogin("member4@test.com");
+
+        var response = await memberClient.DeleteAsync($"/api/boards/{boardId}");
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateBoard_AsInvitedBoardMember_ReturnsForbid()
+    {
+        var ownerClient = await RegisterAndLogin("inviteowner1@test.com");
+        var create = await ownerClient.PostAsJsonAsync("/api/boards", new { boardName = "Secured Board" });
+        var boardId = (await create.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
+
+        var memberClient = await RegisterAndLogin("invitedmember1@test.com");
+        await ownerClient.PostAsJsonAsync($"/api/boards/{boardId}/members",
+            new { email = "invitedmember1@test.com" });
+
+        var response = await memberClient.PutAsJsonAsync($"/api/boards/{boardId}", new { name = "Hacked" });
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeleteBoard_AsInvitedBoardMember_ReturnsForbid()
+    {
+        var ownerClient = await RegisterAndLogin("inviteowner2@test.com");
+        var create = await ownerClient.PostAsJsonAsync("/api/boards", new { boardName = "Secured Board 2" });
+        var boardId = (await create.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
+
+        var memberClient = await RegisterAndLogin("invitedmember2@test.com");
+        await ownerClient.PostAsJsonAsync($"/api/boards/{boardId}/members",
+            new { email = "invitedmember2@test.com" });
 
         var response = await memberClient.DeleteAsync($"/api/boards/{boardId}");
 

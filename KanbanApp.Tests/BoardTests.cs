@@ -53,4 +53,28 @@ public class BoardTests : IClassFixture<WebApplicationFactory<Program>>
         Assert.NotNull(membership);
         Assert.Equal(BoardRole.Owner, membership.Role);
     }
+    
+    [Fact]
+    public async Task GetBoards_ReturnsUserBoards()
+    {
+        var client = _factory.CreateClient();
+        await client.PostAsJsonAsync("/register", new { email = "listboards@test.com", password = "Test123!" });
+        var login = await client.PostAsJsonAsync("/login?useCookies=false&useSessionCookies=false",
+            new { email = "listboards@test.com", password = "Test123!" });
+        var token = (await login.Content.ReadFromJsonAsync<JsonElement>())
+            .GetProperty("accessToken").GetString();
+        client.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+        await client.PostAsJsonAsync("/api/boards", new { boardName = "Board A" });
+        await client.PostAsJsonAsync("/api/boards", new { boardName = "Board B" });
+
+        var response = await client.GetAsync("/api/boards");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var boards = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(2, boards.GetArrayLength());
+    }
+    
 }
+

@@ -54,8 +54,8 @@ public class BoardMemberTests : IClassFixture<WebApplicationFactory<Program>>
         var boardId = boardData.GetProperty("id").GetInt32();
 
         await _ownerClient.PostAsJsonAsync("/register", new { email = "newmember@test.com", password = "Test123!" });
-        
-            var response =
+
+        var response =
             await _ownerClient.PostAsJsonAsync($"/api/boards/{boardId}/members", new { email = "newmember@test.com" });
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
@@ -78,7 +78,8 @@ public class BoardMemberTests : IClassFixture<WebApplicationFactory<Program>>
             new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", nonOwnerToken);
 
         var response =
-            await _nonOwnerClient.PostAsJsonAsync($"/api/boards/{boardId}/members", new { email = "someone@test.com" });
+            await _nonOwnerClient.PostAsJsonAsync($"/api/boards/{boardId}/members",
+                new { email = "someone@test.com" });
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 
@@ -138,5 +139,43 @@ public class BoardMemberTests : IClassFixture<WebApplicationFactory<Program>>
         var response = await outsiderClient.GetAsync($"/api/boards/{boardId}");
 
         Assert.NotEqual(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task AddMember_DuplicateInvite_ReturnsConflict()
+    {
+        var (ownerToken, _) = await RegisterAndLogin("dupowner@test.com");
+        _ownerClient.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", ownerToken);
+
+        var boardResponse = await _ownerClient.PostAsJsonAsync("/api/boards", new { boardName = "Dup Board" });
+        var boardData = await boardResponse.Content.ReadFromJsonAsync<JsonElement>();
+        var boardId = boardData.GetProperty("id").GetInt32();
+
+        await _ownerClient.PostAsJsonAsync("/register", new { email = "dupmember@test.com", password = "Test123!" });
+
+        var first = await _ownerClient.PostAsJsonAsync($"/api/boards/{boardId}/members",
+            new { email = "dupmember@test.com" });
+        first.EnsureSuccessStatusCode();
+
+        var response = await _ownerClient.PostAsJsonAsync($"/api/boards/{boardId}/members",
+            new { email = "dupmember@test.com" });
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task AddMember_NonExistingUser_ReturnsNotFound()
+    {
+        var (ownerToken, _) = await RegisterAndLogin("nfowner@test.com");
+        _ownerClient.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", ownerToken);
+
+        var boardResponse = await _ownerClient.PostAsJsonAsync("/api/boards", new { boardName = "NF Board" });
+        var boardData = await boardResponse.Content.ReadFromJsonAsync<JsonElement>();
+        var boardId = boardData.GetProperty("id").GetInt32();
+
+        var response = await _ownerClient.PostAsJsonAsync($"/api/boards/{boardId}/members",
+            new { email = "ghost@nonexistent.com" });
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 }
