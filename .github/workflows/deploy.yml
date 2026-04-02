@@ -25,7 +25,7 @@ jobs:
         run: dotnet test --no-build
 
       - name: Publish
-        run: dotnet publish KanbanApp.Backend/KanbanApp.Backend.csproj -c Release -o ./publish
+        run: dotnet publish KanbanApp.Backend/KanbanApp.Backend.csproj -c Release -o ./publish --self-contained -r linux-x64
 
       - name: Deploy to Azure
         uses: azure/webapps-deploy@v2
