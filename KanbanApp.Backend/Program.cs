@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using KanbanApp.Backend.Data;
 using KanbanApp.Backend.Models;
 using KanbanApp.Backend.Services;
@@ -17,7 +18,8 @@ if (builder.Environment.IsDevelopment())
 else
 {
     builder.Services.AddDbContext<ApplicationDbContext>(options =>
-        options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+        options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
+            .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning)));
 }
 
 builder.Services.AddIdentityApiEndpoints<ApplicationUser>()
