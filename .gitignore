@@ -496,3 +496,13 @@ KanbanApp/bin/
 KanbanApp/obj/
 KanbanApp.Tests/bin/
 KanbanApp.Tests/obj/
+
+# coverage reports
+coveragereport/
+
+# test results
+TestResults/
+
+# SQLite helper files
+kanban.db-shm
+kanban.db-wal

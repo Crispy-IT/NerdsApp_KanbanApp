@@ -1,3 +1,3 @@
 namespace KanbanApp.Backend.DTOs;
 
-public record UpdateColumnDto(string Name);
+public record UpdateColumnDto(string Name, string? Color);

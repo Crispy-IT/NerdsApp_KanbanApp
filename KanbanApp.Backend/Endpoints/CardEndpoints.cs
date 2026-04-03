@@ -31,8 +31,10 @@ public static class CardEndpoints
             var authResult = await authorizationService.AuthorizeAsync(user, boardId, "IsBoardMember");
             if (!authResult.Succeeded) return Results.Forbid();
 
-            var card = await cardService.UpdateAsync(boardId, cardId, dto.Title, dto.Description, dto.ColumnId);
-            return card is null ? Results.NotFound() : Results.Ok(new { card.Id, card.Title, card.Description, card.ColumnId });
+            var card = await cardService.UpdateAsync(boardId, cardId, dto.Title, dto.Description, dto.ColumnId, dto.AssignedToUserId);
+            return card is null
+                ? Results.NotFound()
+                : Results.Ok(new { card.Id, card.Title, card.Description, card.ColumnId, card.AssignedToUserId });
         });
 
         cards.MapDelete("/{cardId}", async (int boardId, int cardId, ICardService cardService,
