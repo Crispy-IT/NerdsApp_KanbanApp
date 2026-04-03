@@ -31,13 +31,13 @@ public class BoardService : IBoardService
                                       && b.BoardMembers.Any(bm => bm.UserId == userId));
     }
 
-    public async Task<Board> CreateAsync(string name, string? description, string ownerUserId)
+    public async Task<Board> CreateAsync(string name, string? description, string ownerUserId, int? projectId = null)
     {
-        var board = new Board { Name = name, Description = description };
-    
+        var board = new Board { Name = name, Description = description, ProjectId = projectId };
+
         _context.Boards.Add(board);
         _context.BoardMembers.Add(new BoardMember { Board = board, UserId = ownerUserId, Role = BoardRole.Owner });
-    
+
         await _context.SaveChangesAsync();
         return board;
     }
@@ -63,7 +63,7 @@ public class BoardService : IBoardService
         await _context.SaveChangesAsync();
         return true;
     }
-    
+
     public async Task<bool> IsMemberAsync(int boardId, string userId)
     {
         return await _context.BoardMembers

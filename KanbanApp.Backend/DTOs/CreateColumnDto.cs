@@ -1,3 +1,3 @@
 namespace KanbanApp.Backend.DTOs;
 
-public record CreateColumnDto(string Name, int? Position);
+public record CreateColumnDto(string Name, int? Position, string? Color);

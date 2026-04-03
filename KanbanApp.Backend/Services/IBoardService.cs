@@ -8,11 +8,11 @@ public interface IBoardService
 
     Task<Board?> GetByIdAsync(int boardId, string userId);
 
-    Task<Board> CreateAsync(string name, string? description, string ownerUserId);
+    Task<Board> CreateAsync(string name, string? description, string ownerUserId, int? projectId = null);
 
     Task<Board?> UpdateAsync(int boardId, string userId, string name, string? description);
 
     Task<bool> DeleteAsync(int boardId, string userId);
-    
+
     Task<bool> IsMemberAsync(int boardId, string userId);
 }

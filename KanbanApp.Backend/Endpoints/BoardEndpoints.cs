@@ -16,15 +16,15 @@ public static class BoardEndpoints
         {
             var userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
             var boards = await service.GetAllByUserAsync(userId!);
-            var result = boards.Select(b => new { b.Id, b.Name, b.Description, b.CreatedAt });
+            var result = boards.Select(b => new { b.Id, b.Name, b.Description, b.CreatedAt, b.ProjectId });
             return Results.Ok(result);
         }).RequireAuthorization();
 
         app.MapPost("/api/boards", async (CreateBoardDto dto, IBoardService boardService, ClaimsPrincipal user) =>
         {
             var userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
-            var board = await boardService.CreateAsync(dto.BoardName, null, userId!);
-            return TypedResults.Created($"/api/boards/{board.Id}", new { board.Id, board.Name, board.Description });
+            var board = await boardService.CreateAsync(dto.BoardName, null, userId!, dto.ProjectId);
+            return TypedResults.Created($"/api/boards/{board.Id}", new { board.Id, board.Name, board.Description, board.ProjectId });
         }).RequireAuthorization();
 
         app.MapGet("/api/boards/{boardId}", async (
@@ -41,13 +41,36 @@ public static class BoardEndpoints
             var dto = new BoardDetailDto(
                 board.Id, board.Name, board.Description, board.CreatedAt,
                 board.Columns.Select(c => new ColumnDto(
-                    c.Id, c.Name, c.Position,
+                    c.Id, c.Name, c.Position, c.Color,
                     c.Cards.Select(card => new CardDto(
                         card.Id, card.Title, card.Description, card.Position, card.CreatedAt, card.AssignedToUserId
                     )).ToList()
                 )).ToList()
             );
             return Results.Ok(dto);
+        }).RequireAuthorization();
+
+        app.MapGet("/api/boards/{boardId}/members", async (
+            int boardId,
+            IAuthorizationService authorizationService,
+            ClaimsPrincipal user,
+            ApplicationDbContext db) =>
+        {
+            var authResult = await authorizationService.AuthorizeAsync(user, boardId, "IsBoardMember");
+            if (!authResult.Succeeded) return Results.Forbid();
+
+            var members = await db.BoardMembers
+                .Where(m => m.BoardId == boardId)
+                .Include(m => m.User)
+                .Select(m => new {
+                    userId = m.UserId,
+                    email = m.User.Email,
+                    userName = m.User.UserName,
+                    role = m.Role.ToString()
+                })
+                .ToListAsync();
+
+            return Results.Ok(members);
         }).RequireAuthorization();
 
         app.MapPut("/api/boards/{boardId}", async (

@@ -20,7 +20,7 @@ public class CardService : ICardService
         return card;
     }
 
-    public async Task<Card?> UpdateAsync(int boardId, int cardId, string title, string? description, int columnId)
+    public async Task<Card?> UpdateAsync(int boardId, int cardId, string title, string? description, int columnId, string? assignedToUserId)
     {
         var card = await _context.Cards
             .Include(c => c.Column)
@@ -34,6 +34,7 @@ public class CardService : ICardService
         card.Title = title;
         card.Description = description;
         card.ColumnId = columnId;
+        card.AssignedToUserId = assignedToUserId;
         await _context.SaveChangesAsync();
         return card;
     }
@@ -49,7 +50,7 @@ public class CardService : ICardService
         await _context.SaveChangesAsync();
         return true;
     }
-    
+
     public async Task<Card?> AssignCardAsync(int cardId, string userId)
     {
         var card = await _context.Cards.FindAsync(cardId);

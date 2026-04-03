@@ -21,11 +21,17 @@ public static class ColumnEndpoints
             if (!authResult.Succeeded) return Results.Forbid();
 
             var position = dto.Position ?? await db.Columns.Where(c => c.BoardId == boardId).CountAsync();
-            var column = new Column { Name = dto.Name, Position = position, BoardId = boardId };
+            var column = new Column
+            {
+                Name = dto.Name,
+                Position = position,
+                BoardId = boardId,
+                Color = dto.Color ?? "#00d4ff"
+            };
             db.Columns.Add(column);
             await db.SaveChangesAsync();
             return TypedResults.Created($"/api/boards/{boardId}/columns/{column.Id}",
-                new { column.Id, column.Name, column.Position });
+                new { column.Id, column.Name, column.Position, column.Color });
         });
 
         columns.MapPut("/{columnId}", async (int boardId, int columnId, UpdateColumnDto dto, ApplicationDbContext db,
@@ -37,8 +43,21 @@ public static class ColumnEndpoints
             var column = await db.Columns.FirstOrDefaultAsync(c => c.Id == columnId && c.BoardId == boardId);
             if (column == null) return Results.NotFound();
             column.Name = dto.Name;
+            if (dto.Color != null) column.Color = dto.Color;
             await db.SaveChangesAsync();
-            return Results.Ok(new { column.Id, column.Name, column.Position });
+            return Results.Ok(new { column.Id, column.Name, column.Position, column.Color });
+        });
+
+        columns.MapDelete("/{columnId}/cards", async (int boardId, int columnId, ApplicationDbContext db,
+            IAuthorizationService authorizationService, ClaimsPrincipal user) =>
+        {
+            var authResult = await authorizationService.AuthorizeAsync(user, boardId, "IsBoardMember");
+            if (!authResult.Succeeded) return Results.Forbid();
+
+            var cards = await db.Cards.Where(c => c.ColumnId == columnId).ToListAsync();
+            db.Cards.RemoveRange(cards);
+            await db.SaveChangesAsync();
+            return Results.NoContent();
         });
 
         columns.MapDelete("/{columnId}", async (int boardId, int columnId, ApplicationDbContext db,

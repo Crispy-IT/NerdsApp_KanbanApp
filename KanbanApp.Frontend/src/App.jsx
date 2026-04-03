@@ -1,121 +1,93 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation, NavLink, Outlet } from 'react-router-dom';
+import api from './services/api';
+import { useTopbar } from './context/TopbarContext';
+import './App.css';
 
-function App() {
-  const [count, setCount] = useState(0)
+export default function App() {
+    const navigate = useNavigate();
+    const location = useLocation();
+    const [user, setUser] = useState(null);
+    const { title, actions } = useTopbar();
 
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        api.get('/api/users/me').then(res => setUser(res.data)).catch(() => {});
+    }, [location.pathname]);
+
+    const handleLogout = () => {
+        localStorage.removeItem('token');
+        navigate('/login');
+    };
+
+    const isAuthPage = ['/login', '/register', '/'].includes(location.pathname);
+    if (isAuthPage) return <Outlet />;
+
+    return (
+        <div className="app-layout">
+            <aside className="sidebar">
+                <div className="sidebar-logo">
+                    <span>KANBAN<span className="logo-dot">.app</span></span>
+                </div>
+                <nav className="sidebar-nav">
+                    <NavLink to="/dashboard" className={({ isActive }) => isActive ? 'active' : ''}>
+                        🗂 Projects
+                    </NavLink>
+                    <NavLink to="/profile" className={({ isActive }) => isActive ? 'active' : ''}>
+                        👤 Profile
+                    </NavLink>
+                </nav>
+                <div className="sidebar-bottom">
+                    {user && (
+                        <div className="sidebar-user">
+                            <div style={{
+                                width: '28px',
+                                height: '28px',
+                                borderRadius: '50%',
+                                overflow: 'hidden',
+                                background: 'var(--accent-indigo)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '11px',
+                                fontWeight: '600',
+                                color: '#fff',
+                                flexShrink: 0
+                            }}>
+                                {user.profilePictureUrl
+                                    ? <img src={user.profilePictureUrl} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    : user.userName?.slice(0, 2).toUpperCase()
+                                }
+                            </div>
+                            <div style={{ overflow: 'hidden' }}>
+                                <p style={{ fontSize: '13px', fontWeight: '500', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                    {user.userName}
+                                </p>
+                                <p style={{ fontSize: '11px', color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                    {user.email}
+                                </p>
+                            </div>
+                        </div>
+                    )}
+                    <button onClick={handleLogout} className="btn-secondary" style={{ width: '100%', marginTop: '8px' }}>
+                        ⏻ Logout
+                    </button>
+                </div>
+            </aside>
+
+            <div className="main-content">
+                <div className="topbar">
+                    <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-start' }}>
+                        {actions?.left}
+                    </div>
+                    <span className="topbar-title">{title}</span>
+                    <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                        {actions?.right}
+                    </div>
+                </div>
+                <Outlet />
+            </div>
         </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+    );
 }
-
-export default App
