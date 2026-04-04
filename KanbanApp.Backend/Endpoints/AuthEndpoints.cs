@@ -14,12 +14,16 @@ public static class AuthEndpoints
     {
         app.MapPost("/register", async ([FromBody] RegisterRequest request, UserManager<ApplicationUser> userManager) =>
         {
-            if (string.IsNullOrWhiteSpace(request.UserName) || string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Password))
-                return Results.BadRequest(new { message = "All fields are required." });
+            if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Password))
+                return Results.BadRequest(new { message = "Email and password are required." });
+
+            var userName = string.IsNullOrWhiteSpace(request.UserName)
+                ? request.Email.Split('@')[0]
+                : request.UserName;
 
             var user = new ApplicationUser
             {
-                UserName = request.UserName,
+                UserName = userName,
                 Email = request.Email
             };
 
@@ -35,6 +39,9 @@ public static class AuthEndpoints
             UserManager<ApplicationUser> userManager,
             IConfiguration configuration) =>
         {
+            if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Password))
+                return Results.BadRequest(new { message = "Email and password are required." });
+
             var user = await userManager.FindByEmailAsync(request.Email);
             if (user == null)
                 return Results.Unauthorized();
@@ -72,5 +79,5 @@ public static class AuthEndpoints
     }
 }
 
-public record RegisterRequest(string UserName, string Email, string Password);
+public record RegisterRequest(string Email, string Password, string? UserName = null);
 public record LoginRequest(string Email, string Password);
